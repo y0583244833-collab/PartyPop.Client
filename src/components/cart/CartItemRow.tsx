@@ -1,6 +1,7 @@
 import type { CartItem } from '../../api/types';
 import { useRemoveCartItem, useUpdateCartItem } from '../../hooks/useCart';
 import { formatPrice } from '../../utils/format';
+import { ErrorMessage } from '../ErrorMessage';
 
 export function CartItemRow({ item }: { item: CartItem }) {
   const update = useUpdateCartItem();
@@ -13,11 +14,17 @@ export function CartItemRow({ item }: { item: CartItem }) {
         {item.productName}
         {/* אזהרה בלבד: הסל לא שומר מקום */}
         {item.warning && <div className="warning">⚠️ {item.warning}</div>}
+        <ErrorMessage error={update.error} />
       </td>
       <td>
-        <input type="number" min={1} max={100} defaultValue={item.quantity} disabled={busy}
+        <input type="number" min={1} max={item.available ?? undefined} defaultValue={item.quantity} disabled={busy}
                onBlur={(e) => {
-                 const quantity = Number(e.target.value);
+                 let quantity = Number(e.target.value);
+                 // לא יותר ממה שזמין בתאריך ובמשמרת של הסל
+                 if (item.available !== null && quantity > item.available) {
+                   quantity = Math.max(1, item.available);
+                   e.target.value = String(quantity);
+                 }
                  if (quantity >= 1 && quantity !== item.quantity) update.mutate({ itemId: item.id, quantity });
                }} />
       </td>

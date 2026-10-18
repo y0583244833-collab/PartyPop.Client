@@ -14,6 +14,8 @@ interface Props {
 export function ProductCard({ product, canAddToCart }: Props) {
   const [quantity, setQuantity] = useState(1);
   const addToCart = useAddToCart();
+  // כמה אפשר להזמין: לפי התאריך והמשמרת שנבחרו, ואחרת לפי היחידות התקינות. השרת בודק שוב
+  const maxQuantity = product.available ?? Math.max(0, product.totalQuantity - product.outOfServiceQuantity);
 
   return (
     <article className="card">
@@ -33,13 +35,16 @@ export function ProductCard({ product, canAddToCart }: Props) {
 
       {canAddToCart && (
         <div className="add-row">
-          <input type="number" min={1} max={100} value={quantity}
-                 onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
-          <button className="btn btn-primary" disabled={addToCart.isPending}
+          <input type="number" min={1} max={maxQuantity} value={quantity} disabled={maxQuantity === 0}
+                 onChange={(e) => setQuantity(Math.min(maxQuantity, Math.max(1, Number(e.target.value))))} />
+          <button className="btn btn-primary" disabled={addToCart.isPending || maxQuantity === 0}
                   onClick={() => addToCart.mutate({ productId: product.id, quantity })}>
             {addToCart.isPending ? 'מוסיף...' : 'הוספה לסל'}
           </button>
         </div>
+      )}
+      {canAddToCart && (
+        <small className="muted">{maxQuantity === 0 ? 'אין יחידות זמינות' : `במלאי: ${maxQuantity} יחידות`}</small>
       )}
       {addToCart.isSuccess && <small className="success">נוסף לסל ✓</small>}
       <ErrorMessage error={addToCart.error} />
